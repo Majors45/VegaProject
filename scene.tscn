@@ -1,0 +1,173 @@
+[gd_scene load_steps=21 format=2]
+
+[ext_resource path="res://sprites/ship.png" type="Texture" id=1]
+[ext_resource path="res://sprites/background.png" type="Texture" id=2]
+[ext_resource path="res://scripts/background.gd" type="Script" id=3]
+[ext_resource path="res://Nave.gd" type="Script" id=4]
+[ext_resource path="res://scripts/camera.gd" type="Script" id=5]
+[ext_resource path="res://scripts/Inimigos.gd" type="Script" id=6]
+[ext_resource path="res://scripts/lazers.gd" type="Script" id=7]
+[ext_resource path="res://font/prstartk.ttf" type="DynamicFontData" id=8]
+[ext_resource path="res://scripts/HUD.gd" type="Script" id=9]
+[ext_resource path="res://scripts/jogo.gd" type="Script" id=10]
+[ext_resource path="res://contagem.gd" type="Script" id=11]
+[ext_resource path="res://scenes/escudo.tscn" type="PackedScene" id=12]
+
+[sub_resource type="Shader" id=1]
+code = "shader_type canvas_item;
+
+uniform float vel = -.4;
+uniform float des = 0.005f;
+uniform float time = 0f;
+
+void fragment(){
+	COLOR = texture(TEXTURE , UV +(vec2(0,1f) * time * vel) + vec2(des , 0));
+	
+}"
+
+[sub_resource type="ShaderMaterial" id=2]
+shader = SubResource( 1 )
+shader_param/vel = -0.3
+shader_param/des = 0.005
+shader_param/time = 0.0
+
+[sub_resource type="CircleShape2D" id=3]
+radius = 26.0
+
+[sub_resource type="CircleShape2D" id=4]
+radius = 20.0998
+
+[sub_resource type="Animation" id=5]
+length = 0.2
+loop = true
+step = 1.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("nave:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.1 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ 1, 0 ]
+}
+
+[sub_resource type="DynamicFont" id=6]
+font_data = ExtResource( 8 )
+
+[sub_resource type="DynamicFontData" id=7]
+font_path = "res://font/prstartk.ttf"
+
+[sub_resource type="DynamicFont" id=8]
+size = 32
+font_data = SubResource( 7 )
+
+[node name="Jogo" type="Node2D"]
+script = ExtResource( 10 )
+
+[node name="background" type="Sprite" parent="."]
+material = SubResource( 2 )
+position = Vector2( -4, -4 )
+scale = Vector2( 1.05, 1.02778 )
+texture = ExtResource( 2 )
+centered = false
+script = ExtResource( 3 )
+nave1 = NodePath("../Nave")
+
+[node name="cenario" type="Node2D" parent="."]
+script = ExtResource( 7 )
+nave1 = NodePath("../Nave")
+
+[node name="Inimigos" type="Node2D" parent="cenario"]
+script = ExtResource( 6 )
+
+[node name="spawn_timer" type="Timer" parent="cenario/Inimigos"]
+
+[node name="Nave" type="Node2D" parent="." groups=[
+"player",
+]]
+position = Vector2( 80, 266 )
+script = ExtResource( 4 )
+lazers = NodePath("../cenario")
+
+[node name="area" type="Area2D" parent="Nave"]
+collision_mask = 2147483652
+
+[node name="shape" type="CollisionShape2D" parent="Nave/area"]
+shape = SubResource( 3 )
+
+[node name="dead_area" type="Area2D" parent="Nave"]
+collision_mask = 4
+
+[node name="shape" type="CollisionShape2D" parent="Nave/dead_area"]
+shape = SubResource( 4 )
+
+[node name="escudo" parent="Nave" instance=ExtResource( 12 )]
+position = Vector2( -1, -3 )
+
+[node name="sprite" parent="Nave/escudo" index="0"]
+position = Vector2( 0, -0.375006 )
+scale = Vector2( 0.69375, 0.684375 )
+
+[node name="nave" type="Sprite" parent="Nave"]
+texture = ExtResource( 1 )
+hframes = 2
+frame = 1
+
+[node name="anim" type="AnimationPlayer" parent="Nave"]
+autoplay = "fogo"
+anims/fogo = SubResource( 5 )
+
+[node name="tiro" type="Position2D" parent="Nave"]
+position = Vector2( 0, -32 )
+
+[node name="camera" type="Camera2D" parent="." groups=[
+"camera",
+]]
+anchor_mode = 0
+current = true
+script = ExtResource( 5 )
+
+[node name="HUD" type="CanvasLayer" parent="." groups=[
+"hud",
+]]
+script = ExtResource( 9 )
+
+[node name="score" type="Label" parent="HUD"]
+margin_left = 4.0
+margin_top = 4.0
+margin_right = 157.0
+margin_bottom = 18.0
+custom_fonts/font = SubResource( 6 )
+text = "0"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="contagem" type="Node2D" parent="HUD"]
+pause_mode = 2
+script = ExtResource( 11 )
+
+[node name="label" type="Label" parent="HUD/contagem"]
+margin_left = -2.0
+margin_top = -2.0
+margin_right = 162.0
+margin_bottom = 289.0
+custom_fonts/font = SubResource( 8 )
+text = "3"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="timer" type="Timer" parent="HUD/contagem"]
+autostart = true
+[connection signal="timeout" from="cenario/Inimigos/spawn_timer" to="cenario/Inimigos" method="_on_spawn_timer_timeout"]
+[connection signal="area_entered" from="Nave/area" to="Nave" method="_on_area_area_entered"]
+[connection signal="area_exited" from="Nave/dead_area" to="Nave" method="_on_dead_area_area_exited"]
+[connection signal="timeout" from="HUD/contagem/timer" to="HUD/contagem" method="_on_Timer_timeout"]
+
+[editable path="Nave/escudo"]
